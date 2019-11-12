@@ -543,10 +543,10 @@ class Face_recognition(metaclass = metaclass_singleton ):
         '''model = cv2.dnn.readNetFromCaffe('OpenCV_repo_data/deploy.prototxt', 'OpenCV_repo_data/weights.caffemodel')
         self.df = DetectFaceBoundBoxes(model)
         self.Neighbors_KNN = Neighbors_KNN'''
-        self.df =None
-        self.model = None
+        self.model = cv2.dnn.readNetFromCaffe('OpenCV_repo_data/deploy.prototxt', 'OpenCV_repo_data/weights.caffemodel')
+        self.df = DetectFaceBoundBoxes(self.model)
         self.Neighbors_KNN = Neighbors_KNN
-        self.classes = np.load('class_embedding_average.npy')
+
         @typeassert(str)
         def check(path):
             self.path = path
@@ -554,12 +554,15 @@ class Face_recognition(metaclass = metaclass_singleton ):
             self._result = []
             self.knownfaces = []
             self.label = []
-            self._mean = 0
-            self._normalizer = None
-            self._std = 0
-            self._le  = None
-            self._model = None
+            self.classes = np.load('class_embedding_average.npy')
             self._font = cv2.FONT_HERSHEY_COMPLEX_SMALL
+            array = self.load_model(r'mean_std.pickle')
+            self._mean , self._std  = array[0] , array[1]
+            self._model = self.loadModel()
+            self.modelsvc = self.load_model(r'svc.pickle')
+            self._le = self.load_model(r'labelencoder.pickle')
+
+            self._normalizer = self.load_model(r'normalizer.pickle')
         check(path)
     def __enter__(self):
         self.model = cv2.dnn.readNetFromCaffe('OpenCV_repo_data/deploy.prototxt', 'OpenCV_repo_data/weights.caffemodel')
@@ -623,7 +626,7 @@ class Face_recognition(metaclass = metaclass_singleton ):
                 img = cv2.rectangle(img,(x1,y1),(x2,y2),(0,255,0),1)
         return img
     
-    def multi_detectFace(self,img,modelsvc ):
+    def multi_detectFace(self,img ):
         h , w = img.shape[:2]
         face_list = self.df.detect_multiFace(img , h , w)
         final_tempimg = []
@@ -653,7 +656,7 @@ class Face_recognition(metaclass = metaclass_singleton ):
             _embeddings = self._model.predict(final_tempimg)
             _embeddings = self._normalizer.transform(_embeddings)
             #result = modelsvc.predict(_embeddings)
-            confidence = modelsvc.predict_proba(_embeddings)
+            confidence = self.modelsvc.predict_proba(_embeddings)
 
             #resultlabel = self._le.inverse_transform(result)
             '''for label,coor in zip(resultlabel , face_list):
@@ -688,8 +691,6 @@ class Face_recognition(metaclass = metaclass_singleton ):
                 img = cv2.addWeighted(img, 0.7, img2, 0.3, 0)
                 cv2.putText(img,label,(x1,y1-5),self._font, 1,(250,0,0),1,cv2.LINE_8) 
                 #img = draw_face_shape(img,coor[0],coor[1]) 
-
-
         return img
 
     
@@ -728,19 +729,8 @@ class Face_recognition(metaclass = metaclass_singleton ):
                 break
         cap.release()
         cv2.destroyAllWindows()
-    def multi_face(self ,video_ = 0 ):
-        cap = cv2.VideoCapture(video_)
-        
+    def multi_face(self ,image ):
         count = 0
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        face_model = MTCNN()
-        array = self.load_model(r'mean_std.pickle')
-        self._mean , self._std  = array[0] , array[1]
-        self._model = self.loadModel()
-        modelsvc = self.load_model(r'svc.pickle')
-        self._le = self.load_model(r'labelencoder.pickle')
-
-        self._normalizer = self.load_model(r'normalizer.pickle')
         first = True
         fps_list = []
         fps_deque = collections.deque(maxlen=100)
@@ -1219,12 +1209,12 @@ class Prepare_Dataset_Siamese:
 
 """# context manager for detecting realtime faces in video"""
 
-with Face_recognition("Testvideo/test.mp4") as fr:
+'''with Face_recognition("Testvideo/test.mp4") as fr:
     
     #fr.TrainFaces_SVM('Known_Faces/') #FOR TRAINING ON CUSTOM DATASET SPECIF
     #fr.TestModel('know_faces_test/test')
     #fr.Siamese_Train()
-    fr.multi_face(video_ = 0)
+    fr.multi_face(video_ = 0)'''
 
 
 

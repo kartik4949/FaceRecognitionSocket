@@ -80,39 +80,40 @@ if __name__ == '__main__':
 import _pickle as cPickle
 import socket
 import struct
-from sanus_face_detection import Face_recognition
+from face_recognition_final_v2 import Face_recognition
 import cv2
 import multiprocessing
     
 HOST = ''
 PORT = 8081
-
+BUFFER_SIZE  = 4096*4
 
 def reciever():
+    fr = Face_recognition('test')
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print('Socket created')
     s.bind((HOST, PORT))
     print('Socket bind complete')
     s.listen(10)
     print('Socket now listening')
-    fr = Face_recognition('test')
+    
     conn, addr = s.accept()
     data = b'' 
     payload_size = struct.calcsize("L") 
     while True:
         data = b'' 
         while len(data) < payload_size:
-            data += conn.recv(4096)
+            data += conn.recv(BUFFER_SIZE)
         packed_msg_size = data[:payload_size]
         data = data[payload_size:]
         msg_size = struct.unpack("L", packed_msg_size)[0]
         while len(data) < msg_size:
-            data += conn.recv(4096)
+            data += conn.recv(BUFFER_SIZE)
         frame_data = data[:msg_size]
         data = data[msg_size:]
         #data = data + frame_data
         frame = cPickle.loads(frame_data)
-        #print(frame.shape)
+        print(frame.shape)
         frame = fr.multi_detectFace(frame)
         data = cPickle.dumps(frame)
         message_size = struct.pack("L", len(data)) ### CHANGED

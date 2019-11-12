@@ -37,13 +37,12 @@ BUFFER_SIZE = 4096*4
 def sender():
     cap=cv2.VideoCapture(0)
     clientsocket=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    clientsocket.connect(('3.134.97.106',8081)) 
+    clientsocket.connect(('localhost',8081)) 
     data = b'' 
     payload_size = struct.calcsize("L")
     
     while True:
         ret,frame=cap.read()
-        
         sent_data = cPickle.dumps(frame)
         message_size = struct.pack("L", len(sent_data)) ### CHANGED
         clientsocket.sendall(message_size + sent_data)
